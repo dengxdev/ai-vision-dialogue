@@ -3,6 +3,7 @@ import './App.css';
 import { CameraPreview } from './components/CameraPreview';
 import { VoiceButton } from './components/VoiceButton';
 import { useMediaCapture, FrameCaptureResult } from './hooks/useMediaCapture';
+import { useTTS } from './hooks/useTTS';
 import { config, runtimeStrategy } from './config';
 
 type ToastType = 'success' | 'info' | 'error';
@@ -24,6 +25,8 @@ function App() {
   const [lastResult, setLastResult] = useState<FrameCaptureResult | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [recognizedText, setRecognizedText] = useState('');
+  const [ttsInput, setTtsInput] = useState('你好，这是语音合成测试。');
+  const { speak: speakTTS, stop: stopTTS, isSpeaking } = useTTS();
   const toastIdRef = useRef(0);
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
@@ -59,6 +62,20 @@ function App() {
   const handleTranscript = useCallback((text: string) => {
     setRecognizedText((prev) => prev + text);
   }, []);
+
+  const handleSpeak = useCallback(() => {
+    if (!ttsInput.trim()) {
+      showToast('请输入要播报的文本', 'info');
+      return;
+    }
+    speakTTS(ttsInput).then(() => {
+      showToast('播报完成', 'success');
+    });
+  }, [ttsInput, speakTTS, showToast]);
+
+  const handleStopTTS = useCallback(() => {
+    stopTTS();
+  }, [stopTTS]);
 
   return (
     <div className="app">
@@ -112,6 +129,43 @@ function App() {
             <span className="voice-result-chip__text">{recognizedText}</span>
           </div>
         )}
+
+        <div className="tts-panel">
+          <input
+            type="text"
+            className="tts-input"
+            value={ttsInput}
+            onChange={(e) => setTtsInput(e.target.value)}
+            placeholder="输入要播报的文本"
+            aria-label="语音合成输入"
+          />
+          <button
+            type="button"
+            className="tts-button tts-button--primary"
+            onClick={handleSpeak}
+            disabled={isSpeaking}
+            aria-label="播报"
+          >
+            {isSpeaking ? (
+              <span className="sound-wave" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+            ) : (
+              '播报'
+            )}
+          </button>
+          <button
+            type="button"
+            className="tts-button tts-button--danger"
+            onClick={handleStopTTS}
+            disabled={!isSpeaking}
+            aria-label="打断"
+          >
+            打断
+          </button>
+        </div>
 
         <div className="controls-bar">
           <button
