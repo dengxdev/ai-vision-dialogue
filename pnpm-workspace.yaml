@@ -12,3 +12,6 @@ catalog:
 allowBuilds:
   "@nestjs/core": true
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@types/dom-speech-recognition@0.0.12'

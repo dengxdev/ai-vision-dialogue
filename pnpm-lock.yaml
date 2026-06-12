@@ -92,6 +92,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@ai-vision/audio-utils':
+        specifier: workspace:*
+        version: link:../../packages/audio-utils
       '@ai-vision/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -126,6 +129,9 @@ importers:
 
   packages/audio-utils:
     devDependencies:
+      '@types/dom-speech-recognition':
+        specifier: ^0.0.12
+        version: 0.0.12
       typescript:
         specifier: 'catalog:'
         version: 5.3.3
@@ -790,6 +796,9 @@ packages:
 
   '@types/cors@2.8.19':
     resolution: {integrity: sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==}
+
+  '@types/dom-speech-recognition@0.0.12':
+    resolution: {integrity: sha512-SmLovKV3e/J71U5CBmKYe03Q75biuw7jiEWGoO1arc47CjtmxCr+W7cPJcAAwySSJFwr+jWkr/fPVuVuL+D6Dw==}
 
   '@types/eslint-scope@3.7.3':
     resolution: {integrity: sha512-PB3ldyrcnAicT35TWPs5IcwKD8S333HMaa2VVv4+wdvebJkjWuW/xESoB8IwRcog8HYVYamb1g/R31Qv5Bx03g==}
@@ -2868,6 +2877,8 @@ snapshots:
   '@types/cors@2.8.19':
     dependencies:
       '@types/node': 20.19.43
+
+  '@types/dom-speech-recognition@0.0.12': {}
 
   '@types/eslint-scope@3.7.3':
     dependencies:

@@ -15,7 +15,8 @@
     "react-dom": "catalog:",
     "@ai-vision/shared": "workspace:*",
     "@ai-vision/config": "workspace:*",
-    "@ai-vision/contract": "workspace:*"
+    "@ai-vision/contract": "workspace:*",
+    "@ai-vision/audio-utils": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
