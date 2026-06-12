@@ -1,3 +1,5 @@
+/// <reference types="dom-speech-recognition" />
+
 export interface ASRResult {
   transcript: string;
   isFinal: boolean;

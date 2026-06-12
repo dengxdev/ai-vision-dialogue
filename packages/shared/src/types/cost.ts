@@ -10,12 +10,22 @@ export enum SceneType {
   General = 'general',
   HighDetail = 'high_detail',
   LowValue = 'low_value',
+  Blank = 'blank',
+  Static = 'static',
+  Transition = 'transition',
+  Normal = 'normal',
+}
+
+export interface ResolutionTier {
+  maxWidth: number;
+  quality: number;
 }
 
 export interface FrameResult {
   frameId: string;
   description: string;
   tokensUsed: number;
+  fromCache?: boolean;
 }
 
 export interface DialogueResult {

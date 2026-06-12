@@ -24,16 +24,18 @@ const envBoolean = (defaultValue = false) =>
  */
 export const envSchema = z.object({
   // 视觉模型（BFF 使用）
-  VISION_API_KEY: z.string().min(1, 'VISION_API_KEY is required'),
-  VISION_API_URL: z.string().url(),
+  VISION_API_KEY: z.string().default(''),
+  VISION_API_URL: z.string().url().default('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
   VISION_MODEL: z
     .enum(['qwen-vl-max', 'gpt-4o', 'gemini-pro-vision'])
     .default('qwen-vl-max'),
+  ENABLE_MOCK_VISION: envBoolean(true),
 
   // 文本模型（BFF 使用）
-  LLM_API_KEY: z.string().min(1, 'LLM_API_KEY is required'),
-  LLM_API_URL: z.string().url(),
+  LLM_API_KEY: z.string().default(''),
+  LLM_API_URL: z.string().url().default('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
   LLM_MODEL: z.string().min(1).default('qwen-turbo'),
+  ENABLE_MOCK_LLM: envBoolean(true),
 
   // 端侧图像压缩与成本控制
   FRAME_MAX_WIDTH: z.coerce.number().default(512),

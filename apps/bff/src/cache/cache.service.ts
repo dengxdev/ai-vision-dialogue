@@ -11,8 +11,12 @@ export class CacheService {
   private readonly ttlMs = 5 * 60 * 1000; // 5 minutes
 
   getHash(base64: string): string {
-    // Use the first 256 bytes (characters in base64) as a lightweight key.
-    return base64.slice(0, 256);
+    // 简单感知哈希：对完整 base64 做 djb2，避免仅改尾部就被判为新帧。
+    let hash = 5381;
+    for (let i = 0; i < base64.length; i++) {
+      hash = ((hash << 5) + hash + base64.charCodeAt(i)) | 0;
+    }
+    return `ph-${(hash >>> 0).toString(16)}`;
   }
 
   get<T>(key: string): T | undefined {
