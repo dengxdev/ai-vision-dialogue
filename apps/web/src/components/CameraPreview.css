@@ -1,0 +1,87 @@
+.camera-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #020617;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-preview__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  background: #000;
+}
+
+.camera-preview__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.82);
+  color: #fff;
+  text-align: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+
+.camera-preview__overlay--error {
+  background: rgba(20, 5, 5, 0.88);
+}
+
+.camera-preview__hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.camera-preview__hint h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.camera-preview__hint p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.85;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.camera-preview__sub {
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.camera-preview__spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 520px) {
+  .camera-preview__hint h3 {
+    font-size: 16px;
+  }
+
+  .camera-preview__hint p {
+    font-size: 13px;
+  }
+}
