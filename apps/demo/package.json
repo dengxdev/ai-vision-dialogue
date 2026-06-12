@@ -1,0 +1,11 @@
+{
+  "name": "@ai-vision/demo",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "echo 'Demo placeholder - to be implemented'",
+    "build": "echo 'Demo placeholder - to be implemented'",
+    "lint": "echo 'Demo placeholder - to be implemented'",
+    "clean": "echo 'Demo placeholder - to be implemented'"
+  }
+}
