@@ -1,44 +1,45 @@
-import {
-  bffEnvSchema,
-  sharedEnvSchema,
-  webEnvSchema,
-} from './schema';
+import { envSchema, webConfigSchema } from './schema';
 
 export * from './schema';
 
 export interface RuntimeStrategy {
-  maxImageSize: number;
-  jpegQuality: number;
-  maxRpm: number;
+  frameMaxWidth: number;
+  quality: number;
+  rpmLimit: number;
+}
+
+/**
+ * 解析完整环境变量（供 BFF 使用）
+ * 缺少必需变量时会抛出 ZodError，阻止服务启动
+ */
+export function createConfig(env: Record<string, unknown>) {
+  return envSchema.parse(env);
+}
+
+/**
+ * 解析前端非敏感环境变量（供 web 使用）
+ */
+export function createWebConfig(env: Record<string, unknown>) {
+  return webConfigSchema.parse(env);
 }
 
 /**
  * 获取当前运行时的成本控制策略
+ *
+ * production 下自动降级：更小分辨率、更低 JPEG 质量、更严格 RPM
  */
-export function getRuntimeStrategy(
-  env: Record<string, string | undefined> = process.env,
-): RuntimeStrategy {
+export function getRuntimeStrategy(config: { APP_ENV: string }): RuntimeStrategy {
+  if (config.APP_ENV === 'production') {
+    return {
+      frameMaxWidth: 384,
+      quality: 0.6,
+      rpmLimit: 30,
+    };
+  }
+
   return {
-    maxImageSize: Number(env.COST_MAX_IMAGE_SIZE ?? 512),
-    jpegQuality: Number(env.COST_JPEG_QUALITY ?? 0.7),
-    maxRpm: Number(env.COST_MAX_RPM ?? 60),
+    frameMaxWidth: 512,
+    quality: 0.7,
+    rpmLimit: 60,
   };
-}
-
-export function parseSharedEnv(
-  env: Record<string, string | undefined> = process.env,
-) {
-  return sharedEnvSchema.parse(env);
-}
-
-export function parseBffEnv(
-  env: Record<string, string | undefined> = process.env,
-) {
-  return bffEnvSchema.parse(env);
-}
-
-export function parseWebEnv(
-  env: Record<string, string | undefined> = process.env,
-) {
-  return webEnvSchema.parse(env);
 }
