@@ -159,13 +159,13 @@ export class VideoGateway
     try {
       const response = await this.dialogueService.chat({
         sessionId: payload.sessionId,
-        text: payload.message,
-        imageBase64: payload.frame,
+        message: payload.message,
+        visualContext: payload.frame,
       });
 
       client.emit('dialogue:result', {
-        reply: response.message.content,
-        costTokens: response.costTokens,
+        reply: response.reply,
+        usage: response.usage,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

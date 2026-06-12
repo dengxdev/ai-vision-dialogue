@@ -6,12 +6,15 @@ export interface DialogueMessage {
 }
 
 export interface MultimodalInput {
-  text?: string;
-  imageBase64?: string;
   sessionId: string;
+  message: string;
+  /** 画面描述文本或 base64 图片；传入图片时会先由视觉模型提取描述 */
+  visualContext?: string;
+  /** 可选外部历史；未传入时由服务按 sessionId 管理内存历史 */
+  history?: DialogueMessage[];
 }
 
 export interface DialogueResponse {
-  message: DialogueMessage;
-  costTokens: number;
+  reply: string;
+  usage: number;
 }
