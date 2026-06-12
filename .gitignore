@@ -28,6 +28,9 @@ pnpm-debug.log*
 # Testing
 coverage/
 
+# Playwright / browser automation
+.playwright-mcp/
+
 # Turbo
 .turbo/
 
