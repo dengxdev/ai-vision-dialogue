@@ -17,6 +17,7 @@
     "@nestjs/websockets": "^10.3.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.7.4",
     "zod": "catalog:",
     "@ai-vision/shared": "workspace:*",
     "@ai-vision/config": "workspace:*",

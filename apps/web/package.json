@@ -13,6 +13,7 @@
   "dependencies": {
     "react": "catalog:",
     "react-dom": "catalog:",
+    "socket.io-client": "^4.7.4",
     "@ai-vision/shared": "workspace:*",
     "@ai-vision/config": "workspace:*",
     "@ai-vision/contract": "workspace:*",

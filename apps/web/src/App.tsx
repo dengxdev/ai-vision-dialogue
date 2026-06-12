@@ -1,10 +1,11 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 import { CameraPreview } from './components/CameraPreview';
 import { VoiceButton } from './components/VoiceButton';
 import { useMediaCapture, FrameCaptureResult } from './hooks/useMediaCapture';
 import { useTTS } from './hooks/useTTS';
 import { config, runtimeStrategy } from './config';
+import { WSClient } from './services/ws-client';
 
 type ToastType = 'success' | 'info' | 'error';
 
@@ -12,6 +13,16 @@ interface Toast {
   id: number;
   message: string;
   type: ToastType;
+}
+
+function randomBase64(length: number): string {
+  const chars =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
 function App() {
@@ -39,6 +50,39 @@ function App() {
 
   const handleReady = useCallback(() => {
     setIsReady(true);
+  }, []);
+
+  // WebSocket connectivity test.
+  useEffect(() => {
+    const wsUrl = (import.meta.env.VITE_BFF_WS_URL as string | undefined)
+      ?? 'ws://localhost:3000';
+    const ws = new WSClient(wsUrl, 'video');
+
+    const unsubscribeConnected = ws.on('connected', () => {
+      console.log('WebSocket connected');
+      ws.sendFrame({
+        frameId: `test-${Date.now()}`,
+        imageBase64: randomBase64(2048),
+        timestamp: Date.now(),
+      });
+    });
+
+    const unsubscribeFrameResult = ws.on('frame:result', (result) => {
+      console.log('frame:result', result);
+    });
+
+    const unsubscribeError = ws.on('error', (error) => {
+      console.error('WebSocket error:', error.message);
+    });
+
+    ws.connect();
+
+    return () => {
+      unsubscribeConnected();
+      unsubscribeFrameResult();
+      unsubscribeError();
+      ws.disconnect();
+    };
   }, []);
 
   const handleError = useCallback(

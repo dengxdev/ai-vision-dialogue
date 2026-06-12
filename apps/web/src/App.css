@@ -284,7 +284,7 @@
 
 .controls-bar .transcript-display {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
   min-height: 1.5em;
@@ -316,7 +316,7 @@
 /* Voice result chip */
 .voice-result-chip {
   position: absolute;
-  bottom: calc(140px + env(safe-area-inset-bottom));
+  bottom: calc(270px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 15;
@@ -350,7 +350,7 @@
 /* Floating result chip */
 .result-chip {
   position: absolute;
-  bottom: calc(120px + env(safe-area-inset-bottom));
+  bottom: calc(270px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 15;
@@ -510,14 +510,14 @@
   }
 
   .result-chip {
-    bottom: calc(104px + env(safe-area-inset-bottom));
+    bottom: calc(230px + env(safe-area-inset-bottom));
     gap: 12px;
     padding: 8px 14px;
     font-size: 11px;
   }
 
   .voice-result-chip {
-    bottom: calc(124px + env(safe-area-inset-bottom));
+    bottom: calc(230px + env(safe-area-inset-bottom));
     padding: 8px 14px;
     font-size: 12px;
   }
@@ -526,7 +526,7 @@
 /* TTS panel */
 .tts-panel {
   position: absolute;
-  bottom: calc(136px + env(safe-area-inset-bottom));
+  bottom: calc(210px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 15;
@@ -648,7 +648,7 @@
 
 @media (max-width: 520px) {
   .tts-panel {
-    bottom: calc(118px + env(safe-area-inset-bottom));
+    bottom: calc(180px + env(safe-area-inset-bottom));
     padding: 8px 12px;
     gap: 8px;
     max-width: 94vw;
