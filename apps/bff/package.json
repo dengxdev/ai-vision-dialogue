@@ -7,6 +7,7 @@
     "build": "nest build",
     "start": "node dist/main",
     "lint": "tsc --noEmit",
+    "test": "jest",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -33,8 +34,11 @@
     "@nestjs/cli": "^10.3.0",
     "@nestjs/schematics": "^10.1.0",
     "@nestjs/testing": "^10.3.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.10.6",
+    "jest": "^30.4.2",
     "socket.io-client": "^4.8.3",
+    "ts-jest": "^29.4.11",
     "typescript": "catalog:"
   }
 }
