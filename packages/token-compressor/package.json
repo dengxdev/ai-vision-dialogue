@@ -37,9 +37,17 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "@types/jsdom": "^28.0.3",
+    "jsdom": "^29.1.1",
+    "typescript": "catalog:",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {
+    "sharp": "^0.35.1"
   }
 }
