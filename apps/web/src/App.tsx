@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ASREngine, TTSEngine } from '@ai-vision/audio-utils';
 import './App.css';
-import { CameraPreview } from './components/CameraPreview';
+import { CameraPreview, type PermissionState } from './components/CameraPreview';
+import { ChatPanel, type ChatMessage } from './components/ChatPanel';
 import { CostPanel } from './components/CostPanel';
+import { StatusBar } from './components/StatusBar';
 import { VoiceButton } from './components/VoiceButton';
 import { useMediaCapture } from './hooks/useMediaCapture';
 import { config, runtimeStrategy } from './config';
@@ -19,13 +21,33 @@ interface Toast {
   type: ToastType;
 }
 
-const STATE_LABEL: Record<DialogueState, string> = {
-  idle: '就绪',
-  listening: '聆听中',
-  capturing: '捕获画面',
-  processing: '思考中',
-  speaking: '播报中',
+const STATUS_LABEL: Record<DialogueState, string> = {
+  idle: '等待中…',
+  listening: '聆听中…',
+  capturing: '捕获画面中…',
+  processing: '思考中…',
+  speaking: '说话中…',
 };
+
+const EMPTY_METRICS: CostMetrics = {
+  apiCalls: 0,
+  visionCalls: 0,
+  llmCalls: 0,
+  totalTokens: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  estimatedCostCny: 0,
+  rpm: 0,
+  windowStart: Date.now(),
+  framesCaptured: 0,
+  framesSkipped: 0,
+  cacheHits: 0,
+  avgResponseMs: 0,
+};
+
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 function App() {
   const mediaEngine = useMediaCapture({
@@ -36,29 +58,22 @@ function App() {
 
   const [isReady, setIsReady] = useState(false);
   const [state, setState] = useState<DialogueState>('idle');
-  const [recognizedText, setRecognizedText] = useState('');
-  const [aiReply, setAiReply] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [panelVisible, setPanelVisible] = useState(false);
   const [bffOnline, setBffOnline] = useState(false);
-  const [metrics, setMetrics] = useState<CostMetrics>({
-    apiCalls: 0,
-    visionCalls: 0,
-    llmCalls: 0,
-    totalTokens: 0,
-    inputTokens: 0,
-    outputTokens: 0,
-    estimatedCostCny: 0,
-    rpm: 0,
-    windowStart: Date.now(),
-    framesCaptured: 0,
-    framesSkipped: 0,
-    cacheHits: 0,
-    avgResponseMs: 0,
-  });
+  const [metrics, setMetrics] = useState<CostMetrics>(EMPTY_METRICS);
+  const [permission, setPermission] = useState<PermissionState>('prompt');
+  const [cameraStarted, setCameraStarted] = useState(false);
 
   const orchestratorRef = useRef<Orchestrator | null>(null);
   const toastIdRef = useRef(0);
+  const spacePressedRef = useRef(false);
+
+  const statusText = useMemo(() => {
+    if (!isReady) return '初始化中…';
+    return STATUS_LABEL[state];
+  }, [isReady, state]);
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = ++toastIdRef.current;
@@ -80,6 +95,10 @@ function App() {
     [showToast],
   );
 
+  const handlePermissionChange = useCallback((next: PermissionState) => {
+    setPermission(next);
+  }, []);
+
   useEffect(() => {
     const asr = new ASREngine();
     const tts = new TTSEngine({ autoResumeOnUserInteraction: true });
@@ -98,20 +117,36 @@ function App() {
     const handleStateChange = (event: Event) => {
       const nextState = (event as CustomEvent<{ state: DialogueState }>).detail.state;
       setState(nextState);
-      if (nextState === 'listening') {
-        setRecognizedText('');
-        setAiReply('');
-      }
     };
 
     const handleTranscript = (event: Event) => {
       const text = (event as CustomEvent<{ text: string }>).detail.text;
-      setRecognizedText(text);
+      setMessages((prev) => [
+        ...prev,
+        { id: generateId(), role: 'user', content: text, timestamp: Date.now() },
+      ]);
     };
 
     const handleReply = (event: Event) => {
-      const reply = (event as CustomEvent<{ reply: string }>).detail.reply;
-      setAiReply(reply);
+      const { reply, visionUsage } = (event as CustomEvent<{ reply: string; visionUsage?: number }>).detail;
+      const hasVisualContext = (visionUsage ?? 0) > 0;
+
+      setMessages((prev) => {
+        const next = [...prev];
+        // 标记最近一次用户消息也使用了视觉上下文
+        const lastUserIndex = next.map((m) => m.role).lastIndexOf('user');
+        if (lastUserIndex >= 0) {
+          next[lastUserIndex] = { ...next[lastUserIndex], hasVisualContext };
+        }
+        next.push({
+          id: generateId(),
+          role: 'assistant',
+          content: reply,
+          timestamp: Date.now(),
+          hasVisualContext,
+        });
+        return next;
+      });
     };
 
     const handleErrorEvent = (event: Event) => {
@@ -161,17 +196,49 @@ function App() {
     };
   }, [mediaEngine, showToast]);
 
+  // 键盘快捷键：Ctrl+Shift+D 切换成本面板
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'd') {
         event.preventDefault();
         setPanelVisible((prev) => !prev);
+        return;
+      }
+
+      // 空格键：开始/停止对话（仅在非输入框中、摄像头已启动、且未按住时触发一次）
+      if (
+        event.code === 'Space' &&
+        cameraStarted &&
+        !event.repeat &&
+        !spacePressedRef.current &&
+        !['INPUT', 'TEXTAREA', 'BUTTON'].includes((event.target as HTMLElement)?.tagName || '')
+      ) {
+        event.preventDefault();
+        spacePressedRef.current = true;
+        orchestratorRef.current?.startConversation();
+      }
+
+      // ESC：打断当前播报
+      if (event.code === 'Escape') {
+        orchestratorRef.current?.stop(true);
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'Space' && spacePressedRef.current) {
+        event.preventDefault();
+        spacePressedRef.current = false;
+        orchestratorRef.current?.stop();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [cameraStarted]);
 
   const handlePointerDown = useCallback(() => {
     orchestratorRef.current?.startConversation();
@@ -181,83 +248,71 @@ function App() {
     orchestratorRef.current?.stop();
   }, []);
 
-  const handleStop = useCallback(() => {
-    orchestratorRef.current?.stop(true);
+  const handleStartCamera = useCallback(() => {
+    setCameraStarted(true);
   }, []);
+
+  const voiceButtonState = useMemo(() => {
+    if (state === 'listening') return 'listening';
+    if (state === 'capturing' || state === 'processing') return 'processing';
+    if (state === 'speaking') return 'speaking';
+    return 'idle';
+  }, [state]);
 
   return (
     <div className="app">
-      <div className="camera-backdrop">
-        <CameraPreview engine={mediaEngine} onReady={handleReady} onError={handleError} />
-      </div>
-
-      <header className="app-header">
-        <div className="app-header__brand">
-          <div className="app-header__logo" aria-hidden="true" />
-          <div>
-            <h1>AI Vision Dialogue</h1>
-            <p>AI 视觉对话助手</p>
-          </div>
-        </div>
-        <div className="app-header__status">
-          <span
-            className={`status-dot ${isReady && state !== 'idle' ? 'status-dot--online' : 'status-dot--offline'}`}
-          />
-          <span className="status-text">{isReady ? STATE_LABEL[state] : '初始化中…'}</span>
-        </div>
-      </header>
+      <StatusBar statusText={statusText} online={bffOnline} />
 
       <main className="app-body">
-        <div className="hint-badge">Ctrl+Shift+D 成本面板</div>
-
-        <div className="dialogue-stack">
-          <div className="result-chip">
-            <div className="result-chip__item">
-              <span className="result-chip__label">策略</span>
-              <span className="result-chip__value">
-                {runtimeStrategy.frameMaxWidth}px/q{runtimeStrategy.quality}
-              </span>
-            </div>
-            <div className="result-chip__item">
-              <span className="result-chip__label">状态</span>
-              <span className="result-chip__value">{STATE_LABEL[state]}</span>
+        {permission === 'prompt' && !cameraStarted ? (
+          <div className="onboarding-overlay">
+            <div className="onboarding-card">
+              <div className="onboarding-card__logo" aria-hidden="true" />
+              <h2>AI 视觉对话助手</h2>
+              <p>对准摄像头展示物体、场景或文字，按住麦克风语音提问，AI 将实时看懂画面并语音回答。</p>
+              <ul className="onboarding-card__features">
+                <li>🎯 物体识别</li>
+                <li>📝 文字识别</li>
+                <li>🖼️ 场景理解</li>
+              </ul>
+              <button
+                type="button"
+                className="onboarding-card__cta"
+                onClick={handleStartCamera}
+              >
+                授权并开始
+              </button>
+              <p className="onboarding-card__hint">需要摄像头和麦克风权限</p>
             </div>
           </div>
+        ) : (
+          <div className="main-stage">
+            <section className="camera-panel">
+              <CameraPreview
+                engine={mediaEngine}
+                state={state}
+                onReady={handleReady}
+                onError={handleError}
+                onPermissionChange={handlePermissionChange}
+                autoInitialize
+              />
+            </section>
 
-          {recognizedText && (
-            <div className="voice-result-chip">
-              <span className="voice-result-chip__label">你说</span>
-              <span className="voice-result-chip__text">{recognizedText}</span>
-            </div>
-          )}
-
-          {aiReply && (
-            <div className="voice-result-chip voice-result-chip--reply">
-              <span className="voice-result-chip__label">AI</span>
-              <span className="voice-result-chip__text">{aiReply}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="controls-bar">
-          <VoiceButton
-            onPointerDown={handlePointerDown}
-            onPointerUp={handlePointerUp}
-            isListening={state === 'listening'}
-            transcript={recognizedText}
-            disabled={!isReady}
-          />
-          <button
-            type="button"
-            className="stop-button"
-            onClick={handleStop}
-            disabled={state === 'idle'}
-            aria-label="打断"
-          >
-            打断
-          </button>
-        </div>
+            <section className="chat-panel-wrapper">
+              <ChatPanel messages={messages} />
+            </section>
+          </div>
+        )}
       </main>
+
+      <div className="voice-bar">
+        <VoiceButton
+          state={voiceButtonState}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          disabled={!cameraStarted || !isReady}
+        />
+      </div>
 
       <div className="toast-container" aria-live="polite">
         {toasts.map((toast) => (
@@ -268,6 +323,8 @@ function App() {
       </div>
 
       <CostPanel visible={panelVisible} metrics={metrics} online={bffOnline} />
+
+      <div className="hint-badge">Ctrl+Shift+D 成本面板 · 空格键对话 · ESC 打断</div>
     </div>
   );
 }

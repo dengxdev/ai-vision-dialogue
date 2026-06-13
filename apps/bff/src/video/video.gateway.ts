@@ -192,6 +192,12 @@ export class VideoGateway
       client.emit('dialogue:result', {
         reply: response.reply,
         usage: response.usage,
+        visionUsage: response.visionUsage,
+        visionPromptTokens: response.visionPromptTokens,
+        visionCompletionTokens: response.visionCompletionTokens,
+        llmUsage: response.llmUsage,
+        llmPromptTokens: response.llmPromptTokens,
+        llmCompletionTokens: response.llmCompletionTokens,
       });
 
       if (response.visionUsage && response.visionUsage > 0) {

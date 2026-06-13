@@ -9,7 +9,7 @@ export type DialogueState = 'idle' | 'listening' | 'capturing' | 'processing' | 
 export interface OrchestratorEventMap {
   statechange: CustomEvent<{ state: DialogueState }>;
   transcript: CustomEvent<{ text: string }>;
-  reply: CustomEvent<{ reply: string }>;
+  reply: CustomEvent<{ reply: string; visionUsage?: number }>;
   error: CustomEvent<{ message: string }>;
 }
 
@@ -125,7 +125,7 @@ export class Orchestrator extends EventTarget {
         frame: frameResult?.base64,
       });
 
-      const reply = await replyPromise;
+      const { reply, visionUsage } = await replyPromise;
 
       if (abortController.signal.aborted) {
         return;
@@ -136,7 +136,7 @@ export class Orchestrator extends EventTarget {
       }
 
       this.transitionTo('speaking');
-      this.dispatchEvent(new CustomEvent<{ reply: string }>('reply', { detail: { reply } }));
+      this.dispatchEvent(new CustomEvent<{ reply: string; visionUsage?: number }>('reply', { detail: { reply, visionUsage } }));
 
       try {
         await this.tts.speak(reply);
@@ -199,7 +199,7 @@ export class Orchestrator extends EventTarget {
     this.ws.off('disconnected', this.handleWSDisconnected);
   }
 
-  private waitForDialogueResult(abortController: AbortController): Promise<string> {
+  private waitForDialogueResult(abortController: AbortController): Promise<{ reply: string; visionUsage?: number }> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         cleanup();
@@ -216,7 +216,7 @@ export class Orchestrator extends EventTarget {
           return;
         }
         this.costTracker.recordCall(result.usage ?? 0);
-        resolve(result.reply);
+        resolve({ reply: result.reply, visionUsage: result.visionUsage });
       };
 
       const handleError = (error: { error: string }) => {

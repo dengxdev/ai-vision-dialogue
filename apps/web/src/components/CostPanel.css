@@ -1,6 +1,6 @@
 .cost-panel {
   position: fixed;
-  top: 80px;
+  top: calc(var(--status-bar-height, 70px) + 12px);
   right: 16px;
   width: 280px;
   padding: 16px;
