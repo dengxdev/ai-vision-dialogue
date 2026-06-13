@@ -1,5 +1,5 @@
-import type { ChangeDetectionResult } from '../types';
-import { PixelDiffDetector } from './pixel-diff';
+import type { ChangeDetectionResult } from '../types.js';
+import { PixelDiffDetector } from './pixel-diff.js';
 
 /**
  * 变化检测器选项

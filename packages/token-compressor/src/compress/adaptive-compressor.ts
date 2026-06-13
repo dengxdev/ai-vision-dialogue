@@ -1,5 +1,5 @@
-import type { CompressionParams, CompressionResult, FramePipelineOptions } from '../types';
-import { CanvasCompressor, type ImageSource } from './canvas-compressor';
+import type { CompressionParams, CompressionResult, FramePipelineOptions } from '../types.js';
+import { CanvasCompressor, type ImageSource } from './canvas-compressor.js';
 
 /**
  * RPM 驱动的自适应压缩器

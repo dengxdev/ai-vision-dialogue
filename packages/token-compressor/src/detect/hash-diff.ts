@@ -1,4 +1,4 @@
-import type { ChangeDetectionResult } from '../types';
+import type { ChangeDetectionResult } from '../types.js';
 
 /**
  * 哈希差异检测

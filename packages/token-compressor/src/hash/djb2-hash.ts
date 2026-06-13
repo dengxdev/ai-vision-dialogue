@@ -1,4 +1,4 @@
-import type { HashStrategy } from './hash-strategy';
+import type { HashStrategy } from './hash-strategy.js';
 
 /**
  * djb2 哈希策略（fallback）

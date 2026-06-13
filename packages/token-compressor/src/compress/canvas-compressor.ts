@@ -1,4 +1,4 @@
-import type { CompressionParams, CompressionResult } from '../types';
+import type { CompressionParams, CompressionResult } from '../types.js';
 
 /**
  * Canvas 压缩器选项

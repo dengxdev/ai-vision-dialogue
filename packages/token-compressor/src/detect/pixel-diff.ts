@@ -1,4 +1,4 @@
-import type { ChangeDetectionResult } from '../types';
+import type { ChangeDetectionResult } from '../types.js';
 
 /**
  * 像素采样差异检测器

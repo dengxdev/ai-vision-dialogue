@@ -1,4 +1,4 @@
-import type { HashStrategy } from './hash-strategy';
+import type { HashStrategy } from './hash-strategy.js';
 
 /**
  * sharp 构造函数类型

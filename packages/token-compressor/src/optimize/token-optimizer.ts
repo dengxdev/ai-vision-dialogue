@@ -2,7 +2,7 @@ import type {
   CompressionParams,
   FramePipelineOptions,
   OptimizationDecision,
-} from '../types';
+} from '../types.js';
 
 /**
  * Token 优化器综合决策输入

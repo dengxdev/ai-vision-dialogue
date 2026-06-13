@@ -1,15 +1,15 @@
-import { AdaptiveCompressor } from '../compress/adaptive-compressor';
-import { ChangeDetector } from '../detect/change-detector';
-import { Djb2HashStrategy } from '../hash/djb2-hash';
-import { PerceptualHashStrategy } from '../hash/perceptual-hash';
-import type { HashStrategy } from '../hash/hash-strategy';
-import { TokenOptimizer } from '../optimize/token-optimizer';
+import { AdaptiveCompressor } from '../compress/adaptive-compressor.js';
+import { ChangeDetector } from '../detect/change-detector.js';
+import { Djb2HashStrategy } from '../hash/djb2-hash.js';
+import { PerceptualHashStrategy } from '../hash/perceptual-hash.js';
+import type { HashStrategy } from '../hash/hash-strategy.js';
+import { TokenOptimizer } from '../optimize/token-optimizer.js';
 import type {
   CompressionParams,
   CompressionResult,
   FramePipelineOptions,
   FramePipelineResult,
-} from '../types';
+} from '../types.js';
 
 /**
  * 帧管道编排器

@@ -4,6 +4,9 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    exclude: ['sharp'],
+  },
   resolve: {
     alias: {
       // 直接引用 workspace 源码，避免浏览器加载 CommonJS 构建产物导致 exports 未定义

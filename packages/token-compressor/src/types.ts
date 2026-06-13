@@ -1,4 +1,4 @@
-import type { HashStrategy } from './hash/hash-strategy';
+import type { HashStrategy } from './hash/hash-strategy.js';
 
 /**
  * 压缩参数：描述最终输出图像的尺寸、质量与决策原因
