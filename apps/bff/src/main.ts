@@ -14,7 +14,7 @@ async function bootstrap(): Promise<void> {
   );
 
   app.enableCors({
-    origin: '*',
+    origin: process.env.BFF_CORS_ORIGIN || 'http://localhost:5173',
     credentials: true,
   });
 
