@@ -235,6 +235,9 @@ export class DialogueService {
 
       if (!response.ok) {
         const text = await response.text();
+        this.logger.warn(
+          `[dialogue] Qwen API request URL=${this.config.LLM_API_URL} model=${this.config.LLM_MODEL} status=${response.status} body=${text.slice(0, 500)}`,
+        );
         throw new Error(`Qwen API error ${response.status}: ${text}`);
       }
 

@@ -156,6 +156,9 @@ export class VisionService {
 
       if (!response.ok) {
         const text = await response.text();
+        this.logger.warn(
+          `[vision] Qwen API request URL=${this.config.VISION_API_URL} model=${this.config.VISION_MODEL} status=${response.status} body=${text.slice(0, 500)}`,
+        );
         throw new Error(`Qwen API error ${response.status}: ${text}`);
       }
 

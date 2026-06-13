@@ -27,7 +27,7 @@ interface DialoguePayload {
 }
 
 @WebSocketGateway({
-  namespace: 'video',
+  namespace: process.env.WS_NAMESPACE || 'video',
   cors: { origin: '*' },
 })
 export class VideoGateway
@@ -156,6 +156,9 @@ export class VideoGateway
     @MessageBody() payload: DialoguePayload,
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
+    console.log(
+      `[video] dialogue received from ${client.id}: message="${payload.message?.slice(0, 30) ?? ''}" hasFrame=${Boolean(payload.frame)}`,
+    );
     try {
       const response = await this.dialogueService.chat({
         sessionId: payload.sessionId,
@@ -163,6 +166,7 @@ export class VideoGateway
         visualContext: payload.frame,
       });
 
+      console.log(`[video] dialogue response for ${client.id}: reply="${response.reply?.slice(0, 50) ?? ''}"`);
       client.emit('dialogue:result', {
         reply: response.reply,
         usage: response.usage,
