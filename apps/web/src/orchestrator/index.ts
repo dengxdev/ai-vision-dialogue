@@ -1,5 +1,5 @@
 import type { ASREngine, TTSEngine } from '@ai-vision/audio-utils';
-import type { DialogueResult } from '@ai-vision/shared';
+import type { DialogueResult } from '@ai-vision/contract';
 import type { CompressionParams } from '@ai-vision/token-compressor';
 import type { MediaCaptureEngine } from '../hooks/useMediaCapture';
 import type { WSClient } from '../services/ws-client';
@@ -121,12 +121,14 @@ export class Orchestrator extends EventTarget {
 
       this.transitionTo('processing');
 
+      const hasFrame = Boolean(frameResult?.base64);
+
       // 先注册结果监听器，再发送消息，避免低延迟环境下结果事件早于监听器注册而丢失
-      const replyPromise = this.waitForDialogueResult(abortController);
+      const replyPromise = this.waitForDialogueResult(abortController, hasFrame);
 
       this.ws.sendDialogue({
         message: text,
-        frame: frameResult?.base64,
+        frame: hasFrame && frameResult ? { imageBase64: frameResult.base64 } : null,
       });
 
       const { reply, visionUsage } = await replyPromise;
@@ -204,7 +206,10 @@ export class Orchestrator extends EventTarget {
     this.ws.off('disconnected', this.handleWSDisconnected);
   }
 
-  private waitForDialogueResult(abortController: AbortController): Promise<{ reply: string; visionUsage?: number }> {
+  private waitForDialogueResult(
+    abortController: AbortController,
+    hasFrame: boolean,
+  ): Promise<{ reply: string; visionUsage?: number }> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         cleanup();
@@ -218,15 +223,19 @@ export class Orchestrator extends EventTarget {
           reject(new Error('服务器返回了异常数据'));
           return;
         }
-        this.costTracker.recordCall(result.usage ?? 0);
-        resolve({ reply: result.reply, visionUsage: result.visionUsage });
+        const totalTokens =
+          typeof result.usage === 'number'
+            ? result.usage
+            : (result.usage?.input ?? 0) + (result.usage?.output ?? 0);
+        this.costTracker.recordCall(totalTokens);
+        resolve({ reply: result.reply, visionUsage: hasFrame ? totalTokens : undefined });
       };
 
-      const handleError = (error: { error: string }) => {
+      const handleError = (error: { message: string }) => {
         // eslint-disable-next-line no-console
         console.error('[Orchestrator] received dialogue:error', error);
         cleanup();
-        reject(new Error(error.error));
+        reject(new Error(error.message));
       };
 
       const handleAbort = () => {

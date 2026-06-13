@@ -11,7 +11,7 @@ import { config, runtimeStrategy } from './config';
 import { WSClient } from './services/ws-client';
 import { CostTracker } from './services/cost-tracker';
 import { Orchestrator, type DialogueState } from './orchestrator';
-import type { CostMetrics } from '@ai-vision/shared';
+import type { CostMetricsPayload } from '@ai-vision/contract';
 
 type ToastType = 'success' | 'info' | 'error';
 
@@ -29,7 +29,7 @@ const STATUS_LABEL: Record<DialogueState, string> = {
   speaking: '说话中…',
 };
 
-const EMPTY_METRICS: CostMetrics = {
+const EMPTY_METRICS: CostMetricsPayload = {
   apiCalls: 0,
   visionCalls: 0,
   llmCalls: 0,
@@ -62,7 +62,7 @@ function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [panelVisible, setPanelVisible] = useState(false);
   const [bffOnline, setBffOnline] = useState(false);
-  const [metrics, setMetrics] = useState<CostMetrics>(EMPTY_METRICS);
+  const [metrics, setMetrics] = useState<CostMetricsPayload>(EMPTY_METRICS);
   const [permission, setPermission] = useState<PermissionState>('prompt');
   const [cameraStarted, setCameraStarted] = useState(false);
 
@@ -169,7 +169,7 @@ function App() {
     ws.on('connected', handleWsConnected);
     ws.on('disconnected', handleWsDisconnected);
 
-    const handleMetrics = (next: CostMetrics) => {
+    const handleMetrics = (next: CostMetricsPayload) => {
       setMetrics(next);
     };
     ws.on('metrics:result', handleMetrics);

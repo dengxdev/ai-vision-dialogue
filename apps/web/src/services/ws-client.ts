@@ -1,41 +1,41 @@
 import { io, Socket } from 'socket.io-client';
-import type { CostMetrics, FrameResult, DialogueResult } from '@ai-vision/shared';
 import type { CompressionParams } from '@ai-vision/token-compressor';
-
-export interface FramePayload {
-  frameId: string;
-  imageBase64: string;
-  timestamp: number;
-}
-
-export interface DialoguePayload {
-  sessionId: string;
-  message: string;
-  frame?: string;
-}
+import type {
+  CostMetricsPayload,
+  DialogueError,
+  DialoguePayload,
+  DialogueResult,
+  FrameError,
+  FramePayload,
+  FrameRateLimited,
+  FrameResult,
+  FrameSkipped,
+} from '@ai-vision/contract';
 
 export type WSClientEvent =
   | 'connected'
   | 'disconnected'
   | 'frame:result'
+  | 'frame:skipped'
+  | 'frame:rate-limited'
+  | 'frame:error'
   | 'frame:tier'
   | 'dialogue:result'
   | 'dialogue:error'
   | 'metrics:result'
   | 'error';
 
-export interface DialogueError {
-  error: string;
-}
-
 export type WSClientListenerMap = {
   connected: () => void;
   disconnected: (reason: string) => void;
   'frame:result': (result: FrameResult) => void;
+  'frame:skipped': (detail: FrameSkipped) => void;
+  'frame:rate-limited': (detail: FrameRateLimited) => void;
+  'frame:error': (detail: FrameError) => void;
   'frame:tier': (tier: CompressionParams) => void;
   'dialogue:result': (result: DialogueResult) => void;
   'dialogue:error': (error: DialogueError) => void;
-  'metrics:result': (metrics: CostMetrics) => void;
+  'metrics:result': (metrics: CostMetricsPayload) => void;
   error: (error: Error) => void;
 };
 
@@ -44,7 +44,6 @@ export class WSClient {
   private readonly listeners: {
     [K in WSClientEvent]?: Set<WSClientListenerMap[K]>;
   } = {};
-  private readonly sessionId: string;
   private readonly namespace: string;
 
   constructor(
@@ -52,13 +51,6 @@ export class WSClient {
     namespace = 'video',
   ) {
     this.namespace = namespace || 'video';
-    this.sessionId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  }
-
-  getSessionId(): string {
-    return this.sessionId;
   }
 
   connect(): void {
@@ -94,6 +86,18 @@ export class WSClient {
       this.emit('frame:result', result);
     });
 
+    this.socket.on('frame:skipped', (detail: FrameSkipped) => {
+      this.emit('frame:skipped', detail);
+    });
+
+    this.socket.on('frame:rate-limited', (detail: FrameRateLimited) => {
+      this.emit('frame:rate-limited', detail);
+    });
+
+    this.socket.on('frame:error', (detail: FrameError) => {
+      this.emit('frame:error', detail);
+    });
+
     this.socket.on('frame:tier', (tier: CompressionParams) => {
       this.emit('frame:tier', tier);
     });
@@ -106,7 +110,7 @@ export class WSClient {
       this.emit('dialogue:error', error);
     });
 
-    this.socket.on('metrics:result', (metrics: CostMetrics) => {
+    this.socket.on('metrics:result', (metrics: CostMetricsPayload) => {
       this.emit('metrics:result', metrics);
     });
   }
@@ -120,8 +124,8 @@ export class WSClient {
     this.socket?.emit('frame', payload);
   }
 
-  sendDialogue(payload: Omit<DialoguePayload, 'sessionId'>): void {
-    this.socket?.emit('dialogue', { ...payload, sessionId: this.sessionId });
+  sendDialogue(payload: DialoguePayload): void {
+    this.socket?.emit('dialogue', payload);
   }
 
   requestMetrics(): void {

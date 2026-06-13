@@ -8,6 +8,8 @@ import type {
   CostMetrics,
 } from '@ai-vision/shared';
 
+export * from './websocket';
+
 const c = initContract();
 
 export const apiContract = c.router({
