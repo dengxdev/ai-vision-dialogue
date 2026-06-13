@@ -1,47 +1,27 @@
-import { useEffect, useState } from 'react';
-import { useASR } from '../hooks/useASR';
-
 interface VoiceButtonProps {
-  onTranscript?: (text: string) => void;
+  onPointerDown?: () => void;
+  onPointerUp?: () => void;
+  isListening?: boolean;
+  transcript?: string;
+  disabled?: boolean;
 }
 
-export function VoiceButton({ onTranscript }: VoiceButtonProps) {
-  const { start, stop, transcript, isListening, isFinal } = useASR();
-  const [finalText, setFinalText] = useState('');
-  const [interimText, setInterimText] = useState('');
-
-  useEffect(() => {
-    if (isFinal) {
-      setFinalText((prev) => prev + transcript);
-      setInterimText('');
-      onTranscript?.(transcript);
-    } else {
-      setInterimText(transcript);
-    }
-  }, [transcript, isFinal, onTranscript]);
-
-  const handlePointerDown = () => {
-    setFinalText('');
-    setInterimText('');
-    start();
-  };
-
-  const handlePointerUp = () => {
-    stop();
-  };
-
-  const handlePointerLeave = () => {
-    stop();
-  };
-
+export function VoiceButton({
+  onPointerDown,
+  onPointerUp,
+  isListening = false,
+  transcript = '',
+  disabled = false,
+}: VoiceButtonProps) {
   return (
     <div className="voice-button-container">
       <button
         type="button"
         className={`voice-button ${isListening ? 'listening' : ''}`}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerLeave}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+        disabled={disabled}
         aria-label="按住说话"
       >
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -50,10 +30,12 @@ export function VoiceButton({ onTranscript }: VoiceButtonProps) {
         </svg>
       </button>
       <div className="transcript-display">
-        {finalText && <span className="transcript-final">{finalText}</span>}
-        {interimText && <span className="transcript-interim">{interimText}</span>}
-        {!finalText && !interimText && (
-          <span className="transcript-placeholder">按住麦克风说话</span>
+        {transcript ? (
+          <span className="transcript-final">{transcript}</span>
+        ) : (
+          <span className="transcript-placeholder">
+            {isListening ? '聆听中…' : '按住麦克风说话'}
+          </span>
         )}
       </div>
     </div>

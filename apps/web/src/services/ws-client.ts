@@ -8,6 +8,7 @@ export interface FramePayload {
 }
 
 export interface DialoguePayload {
+  sessionId: string;
   message: string;
   frame?: string;
 }
@@ -17,13 +18,19 @@ export type WSClientEvent =
   | 'disconnected'
   | 'frame:result'
   | 'dialogue:result'
+  | 'dialogue:error'
   | 'error';
+
+export interface DialogueError {
+  error: string;
+}
 
 export type WSClientListenerMap = {
   connected: () => void;
   disconnected: (reason: string) => void;
   'frame:result': (result: FrameResult) => void;
   'dialogue:result': (result: DialogueResult) => void;
+  'dialogue:error': (error: DialogueError) => void;
   error: (error: Error) => void;
 };
 
@@ -32,11 +39,22 @@ export class WSClient {
   private readonly listeners: {
     [K in WSClientEvent]?: Set<WSClientListenerMap[K]>;
   } = {};
+  private readonly sessionId: string;
+  private readonly namespace: string;
 
   constructor(
     private readonly baseUrl: string,
-    private readonly namespace = 'video',
-  ) {}
+    namespace = 'video',
+  ) {
+    this.namespace = namespace || 'video';
+    this.sessionId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  getSessionId(): string {
+    return this.sessionId;
+  }
 
   connect(): void {
     if (this.socket?.connected) {
@@ -47,6 +65,9 @@ export class WSClient {
       ? `${this.baseUrl}/${this.namespace}`
       : this.baseUrl;
 
+    // eslint-disable-next-line no-console
+    console.log('[WSClient] connecting to', url);
+
     this.socket = io(url, {
       transports: ['websocket'],
       autoConnect: true,
@@ -54,14 +75,20 @@ export class WSClient {
     });
 
     this.socket.on('connect', () => {
+      // eslint-disable-next-line no-console
+      console.log('[WSClient] connected', this.socket?.id);
       this.emit('connected');
     });
 
     this.socket.on('disconnect', (reason) => {
+      // eslint-disable-next-line no-console
+      console.log('[WSClient] disconnected', reason);
       this.emit('disconnected', reason);
     });
 
     this.socket.on('connect_error', (error) => {
+      // eslint-disable-next-line no-console
+      console.error('[WSClient] connect_error', error.message);
       this.emit('error', error);
     });
 
@@ -71,6 +98,10 @@ export class WSClient {
 
     this.socket.on('dialogue:result', (result: DialogueResult) => {
       this.emit('dialogue:result', result);
+    });
+
+    this.socket.on('dialogue:error', (error: DialogueError) => {
+      this.emit('dialogue:error', error);
     });
   }
 
@@ -83,8 +114,8 @@ export class WSClient {
     this.socket?.emit('frame', payload);
   }
 
-  sendDialogue(payload: DialoguePayload): void {
-    this.socket?.emit('dialogue', payload);
+  sendDialogue(payload: Omit<DialoguePayload, 'sessionId'>): void {
+    this.socket?.emit('dialogue', { ...payload, sessionId: this.sessionId });
   }
 
   on<K extends WSClientEvent>(
