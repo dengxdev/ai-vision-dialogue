@@ -67,9 +67,6 @@ export class WSClient {
       ? `${this.baseUrl}/${this.namespace}`
       : this.baseUrl;
 
-    // eslint-disable-next-line no-console
-    console.log('[WSClient] connecting to', url);
-
     this.socket = io(url, {
       transports: ['websocket'],
       autoConnect: true,
@@ -77,14 +74,10 @@ export class WSClient {
     });
 
     this.socket.on('connect', () => {
-      // eslint-disable-next-line no-console
-      console.log('[WSClient] connected', this.socket?.id);
       this.emit('connected');
     });
 
     this.socket.on('disconnect', (reason) => {
-      // eslint-disable-next-line no-console
-      console.log('[WSClient] disconnected', reason);
       this.emit('disconnected', reason);
     });
 

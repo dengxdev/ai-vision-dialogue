@@ -114,9 +114,6 @@ export class Orchestrator extends EventTarget {
 
       this.transitionTo('processing');
 
-      // eslint-disable-next-line no-console
-      console.log('[Orchestrator] sendDialogue', { message: text, hasFrame: !!frameResult?.base64 });
-
       // 先注册结果监听器，再发送消息，避免低延迟环境下结果事件早于监听器注册而丢失
       const replyPromise = this.waitForDialogueResult(abortController);
 
@@ -208,8 +205,6 @@ export class Orchestrator extends EventTarget {
       this.pendingTimeout = timeout;
 
       const handleResult = (result: DialogueResult) => {
-        // eslint-disable-next-line no-console
-        console.log('[Orchestrator] received dialogue:result', result.reply?.slice(0, 30));
         cleanup();
         if (!result || typeof result.reply !== 'string') {
           reject(new Error('服务器返回了异常数据'));
@@ -264,10 +259,7 @@ export class Orchestrator extends EventTarget {
   }
 
   private transitionTo(next: DialogueState): void {
-    const prev = this.state;
     this.state = next;
-    // eslint-disable-next-line no-console
-    console.log(`[Orchestrator] ${prev} -> ${next}`);
     this.dispatchEvent(new CustomEvent<{ state: DialogueState }>('statechange', { detail: { state: next } }));
   }
 

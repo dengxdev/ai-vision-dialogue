@@ -142,12 +142,7 @@ export class MediaCaptureEngine {
 
     this.lastFrameData = currentFrameData;
 
-    console.log('[MediaCaptureEngine] 压缩后尺寸:', width, 'x', height);
-    console.log('[MediaCaptureEngine] changeScore:', changeScore.toFixed(4));
-    console.log('[MediaCaptureEngine] hasSignificantChange:', hasSignificantChange);
-
     if (!hasSignificantChange) {
-      console.log('[MediaCaptureEngine] 画面静止，跳过后续 WebSocket 发送');
       return null;
     }
 
