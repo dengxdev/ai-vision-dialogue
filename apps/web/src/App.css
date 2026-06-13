@@ -264,6 +264,11 @@
   transform: scale(0.95);
 }
 
+.controls-bar .voice-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .controls-bar .voice-button.listening {
   background: var(--apple-red);
   border-color: rgba(255, 255, 255, 0.3);
@@ -313,17 +318,31 @@
   color: #888888;
 }
 
-/* Voice result chip */
-.voice-result-chip {
+/* Dialogue stack above controls */
+.dialogue-stack {
   position: absolute;
-  bottom: calc(270px + env(safe-area-inset-bottom));
+  bottom: calc(120px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 15;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(520px, 90vw);
+  pointer-events: none;
+}
+
+.dialogue-stack > * {
+  pointer-events: auto;
+}
+
+/* Voice result chip */
+.voice-result-chip {
+  display: flex;
   align-items: center;
   gap: 8px;
-  max-width: min(480px, 90vw);
+  max-width: 100%;
   padding: 10px 18px;
   border-radius: 999px;
   background: var(--apple-surface);
@@ -349,11 +368,6 @@
 
 /* Floating result chip */
 .result-chip {
-  position: absolute;
-  bottom: calc(270px + env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 15;
   display: flex;
   gap: 18px;
   padding: 10px 18px;
@@ -517,9 +531,13 @@
   }
 
   .voice-result-chip {
-    bottom: calc(230px + env(safe-area-inset-bottom));
     padding: 8px 14px;
     font-size: 12px;
+  }
+
+  .dialogue-stack {
+    bottom: calc(110px + env(safe-area-inset-bottom));
+    gap: 8px;
   }
 }
 
