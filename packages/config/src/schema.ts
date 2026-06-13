@@ -27,7 +27,13 @@ export const envSchema = z.object({
   VISION_API_KEY: z.string().default(''),
   VISION_API_URL: z.string().url().default('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
   VISION_MODEL: z
-    .enum(['qwen-vl-max', 'gpt-4o', 'gemini-pro-vision'])
+    .enum([
+      'qwen-vl-max',
+      'qwen-vl-plus',
+      'qwen-vl-plus-latest',
+      'gpt-4o',
+      'gemini-pro-vision',
+    ])
     .default('qwen-vl-max'),
   ENABLE_MOCK_VISION: envBoolean(true),
 

@@ -30,4 +30,6 @@ export interface FrameResult {
 
 export interface DialogueResult {
   reply: string;
+  /** 本次对话消耗的总 token 数（视觉 + 文本），由 BFF 返回 */
+  usage?: number;
 }
