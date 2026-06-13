@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { SceneType } from '@ai-vision/shared';
 import {
-  SceneType,
-  type ResolutionTier,
-} from '@ai-vision/shared';
+  TokenOptimizer,
+  type CompressionParams,
+} from '@ai-vision/token-compressor';
 
 interface TokenBucket {
   tokens: number;
@@ -15,6 +16,7 @@ export class CostGuardian {
   private readonly requests = new Map<string, number[]>();
   private readonly maxRpm = 60;
   private readonly windowMs = 60 * 1000; // rolling 60 seconds
+  private readonly optimizer = new TokenOptimizer({ rpmLimit: this.maxRpm });
 
   /**
    * 根据 base64 大小快速判断场景类型：
@@ -47,16 +49,11 @@ export class CostGuardian {
    * - RPM > 30 → 384x384, quality 0.6
    * - 其他     → 512x512, quality 0.7
    */
-  selectResolutionTier(): ResolutionTier {
-    const rpm = this.getCurrentRpm();
-
-    if (rpm > 48) {
-      return { maxWidth: 256, quality: 0.5 };
-    }
-    if (rpm > 30) {
-      return { maxWidth: 384, quality: 0.6 };
-    }
-    return { maxWidth: 512, quality: 0.7 };
+  selectResolutionTier(): CompressionParams {
+    return this.optimizer.getOptimalCompressionParams({
+      currentRPM: this.getCurrentRpm(),
+      rpmLimit: this.maxRpm,
+    });
   }
 
   /**

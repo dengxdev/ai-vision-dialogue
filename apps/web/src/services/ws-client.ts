@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import type { CostMetrics, FrameResult, DialogueResult } from '@ai-vision/shared';
+import type { CompressionParams } from '@ai-vision/token-compressor';
 
 export interface FramePayload {
   frameId: string;
@@ -17,6 +18,7 @@ export type WSClientEvent =
   | 'connected'
   | 'disconnected'
   | 'frame:result'
+  | 'frame:tier'
   | 'dialogue:result'
   | 'dialogue:error'
   | 'metrics:result'
@@ -30,6 +32,7 @@ export type WSClientListenerMap = {
   connected: () => void;
   disconnected: (reason: string) => void;
   'frame:result': (result: FrameResult) => void;
+  'frame:tier': (tier: CompressionParams) => void;
   'dialogue:result': (result: DialogueResult) => void;
   'dialogue:error': (error: DialogueError) => void;
   'metrics:result': (metrics: CostMetrics) => void;
@@ -89,6 +92,10 @@ export class WSClient {
 
     this.socket.on('frame:result', (result: FrameResult) => {
       this.emit('frame:result', result);
+    });
+
+    this.socket.on('frame:tier', (tier: CompressionParams) => {
+      this.emit('frame:tier', tier);
     });
 
     this.socket.on('dialogue:result', (result: DialogueResult) => {

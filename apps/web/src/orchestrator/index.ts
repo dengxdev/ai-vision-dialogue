@@ -1,5 +1,6 @@
 import type { ASREngine, TTSEngine } from '@ai-vision/audio-utils';
 import type { DialogueResult } from '@ai-vision/shared';
+import type { CompressionParams } from '@ai-vision/token-compressor';
 import type { MediaCaptureEngine } from '../hooks/useMediaCapture';
 import type { WSClient } from '../services/ws-client';
 import type { CostTracker } from '../services/cost-tracker';
@@ -36,6 +37,7 @@ export class Orchestrator extends EventTarget {
 
   private readonly handleASRResult: (event: Event) => void;
   private readonly handleASREnd: () => void;
+  private readonly handleWSTier: (tier: CompressionParams) => void;
   private readonly handleWSDisconnected: (reason: string) => void;
 
   constructor(options: OrchestratorOptions) {
@@ -60,6 +62,11 @@ export class Orchestrator extends EventTarget {
       }
     };
     this.asr.addEventListener('end', this.handleASREnd);
+
+    this.handleWSTier = (tier) => {
+      this.media.updateCompressionParams(tier);
+    };
+    this.ws.on('frame:tier', this.handleWSTier);
 
     this.handleWSDisconnected = (_reason) => {
       if (this.state === 'idle') {
@@ -193,6 +200,7 @@ export class Orchestrator extends EventTarget {
     this.stop();
     this.asr.removeEventListener('result', this.handleASRResult);
     this.asr.removeEventListener('end', this.handleASREnd);
+    this.ws.off('frame:tier', this.handleWSTier);
     this.ws.off('disconnected', this.handleWSDisconnected);
   }
 

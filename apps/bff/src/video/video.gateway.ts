@@ -84,7 +84,7 @@ export class VideoGateway
     }
 
     // 2. 帧间变化检测：感知哈希缓存命中则视为 STATIC，跳过 API 调用
-    const hash = this.cacheService.getHash(imageBase64);
+    const hash = await this.cacheService.getHash(imageBase64);
     if (this.lastFrameHashes.get(clientId) === hash) {
       console.log(`[video] skip frame ${frameId}: static frame (hash unchanged)`);
       this.costService.recordFrame(clientId, { skipped: true });

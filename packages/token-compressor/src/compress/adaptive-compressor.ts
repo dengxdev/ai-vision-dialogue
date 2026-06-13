@@ -8,8 +8,8 @@ import { CanvasCompressor, type ImageSource } from './canvas-compressor';
  * 在高负载时自动降级，降低 API Token 消耗与调用成本。
  */
 export class AdaptiveCompressor {
-  private readonly maxWidth: number;
-  private readonly quality: number;
+  private maxWidth: number;
+  private quality: number;
   private readonly currentRPM: number;
   private readonly rpmLimit: number;
   private readonly compressor: CanvasCompressor;
@@ -20,6 +20,18 @@ export class AdaptiveCompressor {
     this.currentRPM = options.currentRPM ?? 0;
     this.rpmLimit = options.rpmLimit ?? 60;
     this.compressor = new CanvasCompressor();
+  }
+
+  /**
+   * 动态更新压缩参数（如 BFF 下发 RPM 降级后的档位）
+   */
+  updateCompressionParams(params: Partial<CompressionParams>): void {
+    if (params.maxWidth !== undefined) {
+      this.maxWidth = params.maxWidth;
+    }
+    if (params.quality !== undefined) {
+      this.quality = params.quality;
+    }
   }
 
   /**

@@ -137,7 +137,6 @@ Object.defineProperty(globalThis, 'document', {
 
 class MockImage {
   crossOrigin = '';
-  src = '';
   naturalWidth = 4;
   naturalHeight = 4;
   onload: (() => void) | null = null;

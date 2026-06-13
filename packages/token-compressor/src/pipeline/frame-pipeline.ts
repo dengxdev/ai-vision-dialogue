@@ -141,6 +141,21 @@ export class FramePipeline {
   }
 
   /**
+   * 动态更新压缩参数
+   *
+   * 用于 BFF 推送 RPM 档位更新后，前端无需重建整个流水线即可调整输出质量。
+   */
+  updateCompressionParams(params: Partial<CompressionParams>): void {
+    if (params.maxWidth !== undefined) {
+      this.options.maxWidth = params.maxWidth;
+    }
+    if (params.quality !== undefined) {
+      this.options.quality = params.quality;
+    }
+    this.compressor.updateCompressionParams(params);
+  }
+
+  /**
    * 组装帧管道最终结果
    */
   private assembleResult(

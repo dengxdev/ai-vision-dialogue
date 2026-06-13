@@ -1,6 +1,7 @@
 {
   "name": "@ai-vision/token-compressor",
   "version": "0.0.1",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -43,9 +44,11 @@
   },
   "devDependencies": {
     "@types/jsdom": "^28.0.3",
+    "canvas": "^3.2.3",
     "jsdom": "^29.1.1",
     "typescript": "catalog:",
-    "vitest": "^1.0.0"
+    "vitest": "^1.0.0",
+    "vitest-canvas-mock": "^1.1.4"
   },
   "dependencies": {
     "sharp": "^0.35.1"

@@ -1,4 +1,10 @@
 import { useState } from 'react';
+import {
+  Djb2HashStrategy,
+  FramePipeline,
+  type CompressionParams,
+  type FramePipelineResult,
+} from '@ai-vision/token-compressor';
 
 export interface FrameCaptureOptions {
   maxWidth: number;
@@ -8,19 +14,13 @@ export interface FrameCaptureOptions {
   sampleStep: number;
 }
 
-export interface FrameCaptureResult {
-  base64: string;
-  width: number;
-  height: number;
-  changeScore: number;
-  hasSignificantChange: boolean;
-}
+export type FrameCaptureResult = FramePipelineResult;
 
 export class MediaCaptureEngine {
   private videoStream: MediaStream | null = null;
   private audioStream: MediaStream | null = null;
   private videoElement: HTMLVideoElement | null = null;
-  private lastFrameData: ImageData | null = null;
+  private readonly pipeline: FramePipeline;
   private readonly options: Required<FrameCaptureOptions>;
 
   constructor(options: Partial<FrameCaptureOptions> = {}) {
@@ -32,6 +32,11 @@ export class MediaCaptureEngine {
       sampleStep: 16,
       ...options,
     };
+
+    this.pipeline = new FramePipeline({
+      ...this.options,
+      hashStrategy: new Djb2HashStrategy(),
+    });
   }
 
   /**
@@ -93,10 +98,10 @@ export class MediaCaptureEngine {
   }
 
   /**
-   * 捕获当前视频帧，进行 Canvas 压缩与帧间变化检测
-   * 若画面静止（变化分数 <= 阈值）则返回 null，跳过后续 WebSocket 发送
+   * 捕获当前视频帧，通过 FramePipeline 完成压缩、变化检测与发送决策
+   * 若画面静止（shouldSend 为 false）则返回 null，跳过后续 WebSocket 发送
    */
-  captureFrame(): FrameCaptureResult | null {
+  async captureFrame(): Promise<FramePipelineResult | null> {
     if (!this.videoElement || !this.videoStream) {
       console.warn('[MediaCaptureEngine] 摄像头未就绪，跳过捕获');
       return null;
@@ -110,79 +115,20 @@ export class MediaCaptureEngine {
       return null;
     }
 
-    const { maxWidth, quality, enableChangeDetection, changeThreshold, sampleStep } =
-      this.options;
+    const result = await this.pipeline.process(video);
 
-    // 等比缩放，保证长边不超过 maxWidth
-    const scale = Math.min(1, maxWidth / Math.max(videoWidth, videoHeight));
-    const width = Math.round(videoWidth * scale);
-    const height = Math.round(videoHeight * scale);
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.warn('[MediaCaptureEngine] 无法创建 2D 上下文');
+    if (!result.shouldSend) {
       return null;
     }
 
-    ctx.drawImage(video, 0, 0, width, height);
-    const currentFrameData = ctx.getImageData(0, 0, width, height);
-
-    // 默认首帧或变化检测关闭时视为显著变化
-    let changeScore = 1;
-    let hasSignificantChange = true;
-
-    if (enableChangeDetection && this.lastFrameData) {
-      changeScore = this.computeChangeScore(this.lastFrameData, currentFrameData, sampleStep);
-      hasSignificantChange = changeScore > changeThreshold;
-    }
-
-    this.lastFrameData = currentFrameData;
-
-    if (!hasSignificantChange) {
-      return null;
-    }
-
-    const base64 = canvas.toDataURL('image/jpeg', quality);
-
-    return {
-      base64,
-      width,
-      height,
-      changeScore,
-      hasSignificantChange,
-    };
+    return result;
   }
 
   /**
-   * 每 sampleStep 像素采样，计算变化像素占比
+   * 动态更新压缩参数，用于 BFF 推送 RPM 档位后调整前端输出质量
    */
-  private computeChangeScore(prev: ImageData, curr: ImageData, step: number): number {
-    const { width, height, data: prevData } = prev;
-    const { data: currData } = curr;
-
-    const pixelDiffThreshold = 30;
-    let changedSamples = 0;
-    let totalSamples = 0;
-
-    for (let y = 0; y < height; y += step) {
-      for (let x = 0; x < width; x += step) {
-        const idx = (y * width + x) * 4;
-        const rDiff = Math.abs(prevData[idx] - currData[idx]);
-        const gDiff = Math.abs(prevData[idx + 1] - currData[idx + 1]);
-        const bDiff = Math.abs(prevData[idx + 2] - currData[idx + 2]);
-
-        if (rDiff + gDiff + bDiff > pixelDiffThreshold * 3) {
-          changedSamples += 1;
-        }
-        totalSamples += 1;
-      }
-    }
-
-    return totalSamples > 0 ? changedSamples / totalSamples : 0;
+  updateCompressionParams(params: CompressionParams): void {
+    this.pipeline.updateCompressionParams(params);
   }
 
   /**
@@ -194,7 +140,6 @@ export class MediaCaptureEngine {
     this.videoStream = null;
     this.audioStream = null;
     this.videoElement = null;
-    this.lastFrameData = null;
   }
 }
 

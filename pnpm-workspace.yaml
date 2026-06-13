@@ -11,6 +11,7 @@ catalog:
 # pnpm 11 build policy: 允许依赖执行构建脚本
 allowBuilds:
   "@nestjs/core": true
+  canvas: false
   esbuild: true
 
 minimumReleaseAgeExclude:
