@@ -3,6 +3,36 @@
   "version": "0.0.1",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./hash": {
+      "types": "./dist/hash/hash-strategy.d.ts",
+      "default": "./dist/hash/hash-strategy.js"
+    },
+    "./detect": {
+      "types": "./dist/detect/change-detector.d.ts",
+      "default": "./dist/detect/change-detector.js"
+    },
+    "./compress": {
+      "types": "./dist/compress/adaptive-compressor.d.ts",
+      "default": "./dist/compress/adaptive-compressor.js"
+    },
+    "./optimize": {
+      "types": "./dist/optimize/token-optimizer.d.ts",
+      "default": "./dist/optimize/token-optimizer.js"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline/frame-pipeline.d.ts",
+      "default": "./dist/pipeline/frame-pipeline.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
