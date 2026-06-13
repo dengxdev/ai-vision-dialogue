@@ -64,6 +64,22 @@ export function VoiceButton({
   onPointerUp,
   disabled = false,
 }: VoiceButtonProps) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.code === 'Space' || event.code === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      onPointerDown?.();
+    }
+  };
+
+  const handleKeyUp = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.code === 'Space' || event.code === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      onPointerUp?.();
+    }
+  };
+
   return (
     <div className="voice-button-container">
       <button
@@ -72,6 +88,8 @@ export function VoiceButton({
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
+        onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
         disabled={disabled}
         aria-label={STATE_LABEL[state]}
       >

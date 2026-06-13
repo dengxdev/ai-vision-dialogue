@@ -205,13 +205,14 @@ function App() {
         return;
       }
 
-      // 空格键：开始/停止对话（仅在非输入框中、摄像头已启动、且未按住时触发一次）
+      // 空格键：开始/停止对话（仅在非输入框中、摄像头已启动且就绪、未按住时触发一次）
       if (
         event.code === 'Space' &&
         cameraStarted &&
+        isReady &&
         !event.repeat &&
         !spacePressedRef.current &&
-        !['INPUT', 'TEXTAREA', 'BUTTON'].includes((event.target as HTMLElement)?.tagName || '')
+        !['INPUT', 'TEXTAREA'].includes((event.target as HTMLElement)?.tagName || '')
       ) {
         event.preventDefault();
         spacePressedRef.current = true;
@@ -238,7 +239,7 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [cameraStarted]);
+  }, [cameraStarted, isReady]);
 
   const handlePointerDown = useCallback(() => {
     orchestratorRef.current?.startConversation();
