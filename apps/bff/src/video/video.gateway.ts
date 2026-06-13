@@ -11,6 +11,7 @@ import type { Server, Socket } from 'socket.io';
 import { FrameResult, SceneType } from '@ai-vision/shared';
 import { CacheService } from '../cache/cache.service';
 import { CostGuardian } from '../cost/cost.guardian';
+import { CostService } from '../cost/cost.service';
 import { DialogueService } from '../dialogue/dialogue.service';
 import { VisionService, type AnalyzeResult } from '../vision/vision.service';
 
@@ -41,6 +42,7 @@ export class VideoGateway
 
   constructor(
     private readonly costGuardian: CostGuardian,
+    private readonly costService: CostService,
     private readonly cacheService: CacheService,
     private readonly visionService: VisionService,
     private readonly dialogueService: DialogueService,
@@ -55,6 +57,7 @@ export class VideoGateway
     this.sessions.delete(client.id);
     this.lastFrameHashes.delete(client.id);
     this.dialogueService.clearHistory(client.id);
+    this.costService.clearClient(client.id);
     console.log(`[video] client disconnected: ${client.id}`);
   }
 
@@ -70,6 +73,7 @@ export class VideoGateway
     const scene = this.costGuardian.classifyScene(imageBase64);
     if (!this.costGuardian.shouldProceed(scene)) {
       console.log(`[video] skip frame ${frameId}: scene=${scene}`);
+      this.costService.recordFrame(clientId, { skipped: true });
       const result: FrameResult = {
         frameId,
         description: 'scene filtered by cost guardian',
@@ -83,6 +87,7 @@ export class VideoGateway
     const hash = this.cacheService.getHash(imageBase64);
     if (this.lastFrameHashes.get(clientId) === hash) {
       console.log(`[video] skip frame ${frameId}: static frame (hash unchanged)`);
+      this.costService.recordFrame(clientId, { skipped: true });
       const result: FrameResult = {
         frameId,
         description: 'static frame filtered by perceptual hash cache',
@@ -100,6 +105,7 @@ export class VideoGateway
     // 4. 频次限流（令牌桶，60 RPM），通过后立即扣减 token，避免 await 期间出现竞态
     if (!this.costGuardian.checkRateLimit(clientId)) {
       console.log(`[video] skip frame ${frameId}: rate limited`);
+      this.costService.recordFrame(clientId, { skipped: true });
       const result: FrameResult = {
         frameId,
         description: 'rate limited (60 rpm)',
@@ -115,6 +121,7 @@ export class VideoGateway
     if (cached) {
       console.log(`[video] cache hit frame ${frameId}`);
       this.lastFrameHashes.set(clientId, hash);
+      this.costService.recordFrame(clientId, { cacheHit: true });
       client.emit('frame:result', {
         frameId,
         description: cached.description,
@@ -125,6 +132,8 @@ export class VideoGateway
     }
 
     // 6. 真实 VisionService 调用（无 API Key 时自动降级为 mock）
+    this.costService.recordFrame(clientId, {});
+    const startAt = Date.now();
     try {
       const analyzeResult = await this.visionService.analyze({
         frameId,
@@ -141,6 +150,13 @@ export class VideoGateway
         tokensUsed: analyzeResult.tokensUsed,
       };
       client.emit('frame:result', result);
+
+      this.costService.recordVisionCall(clientId, {
+        tokensUsed: analyzeResult.tokensUsed,
+        promptTokens: analyzeResult.promptTokens,
+        completionTokens: analyzeResult.completionTokens,
+        durationMs: Date.now() - startAt,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`[video] vision analysis failed: ${message}`);
@@ -159,6 +175,10 @@ export class VideoGateway
     console.log(
       `[video] dialogue received from ${client.id}: message="${payload.message?.slice(0, 30) ?? ''}" hasFrame=${Boolean(payload.frame)}`,
     );
+
+    const clientId = client.id;
+    const startAt = Date.now();
+
     try {
       const response = await this.dialogueService.chat({
         sessionId: payload.sessionId,
@@ -166,11 +186,31 @@ export class VideoGateway
         visualContext: payload.frame,
       });
 
+      const durationMs = Date.now() - startAt;
+
       console.log(`[video] dialogue response for ${client.id}: reply="${response.reply?.slice(0, 50) ?? ''}"`);
       client.emit('dialogue:result', {
         reply: response.reply,
         usage: response.usage,
       });
+
+      if (response.visionUsage && response.visionUsage > 0) {
+        this.costService.recordVisionCall(clientId, {
+          tokensUsed: response.visionUsage,
+          promptTokens: response.visionPromptTokens,
+          completionTokens: response.visionCompletionTokens,
+          durationMs,
+        });
+      }
+
+      if (response.llmUsage && response.llmUsage > 0) {
+        this.costService.recordLLMCall(clientId, {
+          tokensUsed: response.llmUsage,
+          promptTokens: response.llmPromptTokens,
+          completionTokens: response.llmCompletionTokens,
+          durationMs: 0,
+        });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`[video] dialogue failed: ${message}`);
@@ -178,5 +218,11 @@ export class VideoGateway
         error: '对话处理失败，请稍后重试',
       });
     }
+  }
+
+  @SubscribeMessage('metrics')
+  handleMetrics(@ConnectedSocket() client: Socket): void {
+    const metrics = this.costService.getMetrics(client.id);
+    client.emit('metrics:result', metrics);
   }
 }

@@ -1,9 +1,17 @@
 export interface CostMetrics {
   apiCalls: number;
+  visionCalls: number;
+  llmCalls: number;
   totalTokens: number;
+  inputTokens: number;
+  outputTokens: number;
   estimatedCostCny: number;
   rpm: number;
   windowStart: number;
+  framesCaptured: number;
+  framesSkipped: number;
+  cacheHits: number;
+  avgResponseMs: number;
 }
 
 export enum SceneType {

@@ -45,6 +45,8 @@ export class DialogueService {
 
     let visualDescription = '';
     let visionTokens = 0;
+    let visionPromptTokens = 0;
+    let visionCompletionTokens = 0;
 
     // 1. 解析视觉上下文：如果是图片则先调用视觉模型获取画面描述
     if (visualContext) {
@@ -56,6 +58,8 @@ export class DialogueService {
         });
         visualDescription = visionResult.description;
         visionTokens = visionResult.tokensUsed;
+        visionPromptTokens = visionResult.promptTokens ?? visionTokens;
+        visionCompletionTokens = visionResult.completionTokens ?? 0;
       } else {
         visualDescription = visualContext;
       }
@@ -72,15 +76,20 @@ export class DialogueService {
 
     let reply: string;
     let llmUsage = 0;
+    let llmPromptTokens = 0;
+    let llmCompletionTokens = 0;
 
     if (this.shouldMockLLM()) {
       this.logger.warn(`[dialogue] mock mode enabled for session ${sessionId}`);
       reply = this.mockReply(message ?? '', visualDescription);
       llmUsage = this.estimateTokens(reply);
+      llmCompletionTokens = llmUsage;
     } else {
       const result = await this.callQwenTurbo(messages);
       reply = result.reply;
       llmUsage = result.usage;
+      llmPromptTokens = result.promptTokens;
+      llmCompletionTokens = result.completionTokens;
     }
 
     // 5. 更新并保存会话历史
@@ -89,6 +98,12 @@ export class DialogueService {
     return {
       reply,
       usage: llmUsage + visionTokens,
+      visionUsage: visionTokens,
+      visionPromptTokens,
+      visionCompletionTokens,
+      llmUsage,
+      llmPromptTokens,
+      llmCompletionTokens,
     };
   }
 
@@ -214,7 +229,7 @@ export class DialogueService {
     return [systemMessage, ...historyMessages, { role: 'user', content: userContent }];
   }
 
-  private async callQwenTurbo(messages: LLMMessage[]): Promise<{ reply: string; usage: number }> {
+  private async callQwenTurbo(messages: LLMMessage[]): Promise<{ reply: string; usage: number; promptTokens: number; completionTokens: number }> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);
 
@@ -252,9 +267,15 @@ export class DialogueService {
         throw new Error('Qwen API returned empty reply');
       }
 
+      const totalTokens = data.usage?.total_tokens ?? this.estimateTokens(reply);
+      const promptTokens = data.usage?.prompt_tokens ?? totalTokens;
+      const completionTokens = data.usage?.completion_tokens ?? 0;
+
       return {
         reply,
-        usage: data.usage?.total_tokens ?? this.estimateTokens(reply),
+        usage: totalTokens,
+        promptTokens,
+        completionTokens,
       };
     } finally {
       clearTimeout(timeout);

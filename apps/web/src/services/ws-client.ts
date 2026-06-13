@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import type { FrameResult, DialogueResult } from '@ai-vision/shared';
+import type { CostMetrics, FrameResult, DialogueResult } from '@ai-vision/shared';
 
 export interface FramePayload {
   frameId: string;
@@ -19,6 +19,7 @@ export type WSClientEvent =
   | 'frame:result'
   | 'dialogue:result'
   | 'dialogue:error'
+  | 'metrics:result'
   | 'error';
 
 export interface DialogueError {
@@ -31,6 +32,7 @@ export type WSClientListenerMap = {
   'frame:result': (result: FrameResult) => void;
   'dialogue:result': (result: DialogueResult) => void;
   'dialogue:error': (error: DialogueError) => void;
+  'metrics:result': (metrics: CostMetrics) => void;
   error: (error: Error) => void;
 };
 
@@ -103,6 +105,10 @@ export class WSClient {
     this.socket.on('dialogue:error', (error: DialogueError) => {
       this.emit('dialogue:error', error);
     });
+
+    this.socket.on('metrics:result', (metrics: CostMetrics) => {
+      this.emit('metrics:result', metrics);
+    });
   }
 
   disconnect(): void {
@@ -116,6 +122,10 @@ export class WSClient {
 
   sendDialogue(payload: Omit<DialoguePayload, 'sessionId'>): void {
     this.socket?.emit('dialogue', { ...payload, sessionId: this.sessionId });
+  }
+
+  requestMetrics(): void {
+    this.socket?.emit('metrics');
   }
 
   on<K extends WSClientEvent>(

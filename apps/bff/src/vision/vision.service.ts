@@ -19,6 +19,8 @@ export interface AnalyzeResult {
   description: string;
   confidence: number;
   tokensUsed: number;
+  promptTokens?: number;
+  completionTokens?: number;
 }
 
 interface QwenCompletionResponse {
@@ -174,6 +176,8 @@ export class VisionService {
       }
 
       const tokensUsed = data.usage?.total_tokens ?? 0;
+      const promptTokens = data.usage?.prompt_tokens ?? tokensUsed;
+      const completionTokens = data.usage?.completion_tokens ?? 0;
       const confidence = this.estimateConfidence(description);
 
       return {
@@ -181,6 +185,8 @@ export class VisionService {
         description,
         confidence,
         tokensUsed,
+        promptTokens,
+        completionTokens,
       };
     } finally {
       clearTimeout(timeout);

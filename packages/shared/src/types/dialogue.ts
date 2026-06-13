@@ -17,4 +17,16 @@ export interface MultimodalInput {
 export interface DialogueResponse {
   reply: string;
   usage: number;
+  /** 视觉模型消耗的 token 数（仅在对话流程中调用了视觉模型时返回） */
+  visionUsage?: number;
+  /** 视觉模型输入 token 数 */
+  visionPromptTokens?: number;
+  /** 视觉模型输出 token 数 */
+  visionCompletionTokens?: number;
+  /** 文本 LLM 消耗的 token 数 */
+  llmUsage?: number;
+  /** 文本 LLM 输入 token 数 */
+  llmPromptTokens?: number;
+  /** 文本 LLM 输出 token 数 */
+  llmCompletionTokens?: number;
 }

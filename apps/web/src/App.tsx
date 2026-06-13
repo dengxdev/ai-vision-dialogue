@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ASREngine, TTSEngine } from '@ai-vision/audio-utils';
 import './App.css';
 import { CameraPreview } from './components/CameraPreview';
+import { CostPanel } from './components/CostPanel';
 import { VoiceButton } from './components/VoiceButton';
 import { useMediaCapture } from './hooks/useMediaCapture';
 import { config, runtimeStrategy } from './config';
 import { WSClient } from './services/ws-client';
 import { CostTracker } from './services/cost-tracker';
 import { Orchestrator, type DialogueState } from './orchestrator';
+import type { CostMetrics } from '@ai-vision/shared';
 
 type ToastType = 'success' | 'info' | 'error';
 
@@ -37,6 +39,23 @@ function App() {
   const [recognizedText, setRecognizedText] = useState('');
   const [aiReply, setAiReply] = useState('');
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [panelVisible, setPanelVisible] = useState(false);
+  const [bffOnline, setBffOnline] = useState(false);
+  const [metrics, setMetrics] = useState<CostMetrics>({
+    apiCalls: 0,
+    visionCalls: 0,
+    llmCalls: 0,
+    totalTokens: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    estimatedCostCny: 0,
+    rpm: 0,
+    windowStart: Date.now(),
+    framesCaptured: 0,
+    framesSkipped: 0,
+    cacheHits: 0,
+    avgResponseMs: 0,
+  });
 
   const orchestratorRef = useRef<Orchestrator | null>(null);
   const toastIdRef = useRef(0);
@@ -110,7 +129,22 @@ function App() {
     };
     ws.on('error', handleWsError);
 
+    const handleWsConnected = () => setBffOnline(true);
+    const handleWsDisconnected = () => setBffOnline(false);
+    ws.on('connected', handleWsConnected);
+    ws.on('disconnected', handleWsDisconnected);
+
+    const handleMetrics = (next: CostMetrics) => {
+      setMetrics(next);
+    };
+    ws.on('metrics:result', handleMetrics);
+
     ws.connect();
+
+    // 连接后立即请求一次，并每 5 秒刷新成本数据
+    const requestMetrics = () => ws.requestMetrics();
+    requestMetrics();
+    const metricsInterval = setInterval(requestMetrics, 5000);
 
     return () => {
       orchestrator.removeEventListener('statechange', handleStateChange);
@@ -118,10 +152,26 @@ function App() {
       orchestrator.removeEventListener('reply', handleReply);
       orchestrator.removeEventListener('error', handleErrorEvent);
       ws.off('error', handleWsError);
+      ws.off('connected', handleWsConnected);
+      ws.off('disconnected', handleWsDisconnected);
+      ws.off('metrics:result', handleMetrics);
+      clearInterval(metricsInterval);
       orchestrator.destroy();
       orchestratorRef.current = null;
     };
   }, [mediaEngine, showToast]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'd') {
+        event.preventDefault();
+        setPanelVisible((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handlePointerDown = useCallback(() => {
     orchestratorRef.current?.startConversation();
@@ -216,6 +266,8 @@ function App() {
           </div>
         ))}
       </div>
+
+      <CostPanel visible={panelVisible} metrics={metrics} online={bffOnline} />
     </div>
   );
 }

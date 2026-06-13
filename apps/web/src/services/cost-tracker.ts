@@ -10,10 +10,18 @@ export class CostTracker extends EventTarget {
     super();
     this.metrics = {
       apiCalls: 0,
+      visionCalls: 0,
+      llmCalls: 0,
       totalTokens: 0,
+      inputTokens: 0,
+      outputTokens: 0,
       estimatedCostCny: 0,
       rpm: 0,
       windowStart: Date.now(),
+      framesCaptured: 0,
+      framesSkipped: 0,
+      cacheHits: 0,
+      avgResponseMs: 0,
     };
   }
 
@@ -31,6 +39,7 @@ export class CostTracker extends EventTarget {
 
     this.metrics.apiCalls += 1;
     this.metrics.totalTokens += tokens;
+    this.metrics.inputTokens += tokens;
     this.metrics.rpm += 1;
     this.metrics.estimatedCostCny = (this.metrics.totalTokens / 1000) * COST_PER_1K_TOKENS;
 
@@ -40,10 +49,18 @@ export class CostTracker extends EventTarget {
   reset(): void {
     this.metrics = {
       apiCalls: 0,
+      visionCalls: 0,
+      llmCalls: 0,
       totalTokens: 0,
+      inputTokens: 0,
+      outputTokens: 0,
       estimatedCostCny: 0,
       rpm: 0,
       windowStart: Date.now(),
+      framesCaptured: 0,
+      framesSkipped: 0,
+      cacheHits: 0,
+      avgResponseMs: 0,
     };
     this.dispatchEvent(new CustomEvent<CostMetrics>('change', { detail: this.getMetrics() }));
   }
