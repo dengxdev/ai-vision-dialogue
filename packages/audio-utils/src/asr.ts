@@ -9,6 +9,7 @@ export class ASREngine extends EventTarget {
   private recognition: SpeechRecognition | null = null;
   private timeoutId: ReturnType<typeof setTimeout> | null = null;
   private _isListening = false;
+  private _startRequested = false;
 
   get isListening(): boolean {
     return this._isListening;
@@ -22,12 +23,14 @@ export class ASREngine extends EventTarget {
   }
 
   start(): void {
-    if (this._isListening) {
+    if (this._isListening || this._startRequested) {
       return;
     }
 
+    this._startRequested = true;
     const SpeechRecognitionAPI = this.getSpeechRecognitionAPI();
     if (!SpeechRecognitionAPI) {
+      this._startRequested = false;
       this.dispatchEvent(
         new CustomEvent('error', {
           detail: new Error('当前浏览器不支持 Web Speech API'),
@@ -84,6 +87,7 @@ export class ASREngine extends EventTarget {
 
     this.recognition.onend = () => {
       this._isListening = false;
+      this._startRequested = false;
       this.clearTimeout();
       this.dispatchEvent(new Event('end'));
     };
@@ -96,6 +100,7 @@ export class ASREngine extends EventTarget {
       this.recognition.start();
     } catch (err) {
       this._isListening = false;
+      this._startRequested = false;
       this.clearTimeout();
       this.dispatchEvent(
         new CustomEvent('error', { detail: err instanceof Error ? err : new Error(String(err)) }),
@@ -104,9 +109,10 @@ export class ASREngine extends EventTarget {
   }
 
   stop(): void {
-    if (!this.recognition || !this._isListening) {
+    if (!this.recognition || !this._startRequested) {
       return;
     }
+    this._startRequested = false;
     this.clearTimeout();
     try {
       this.recognition.stop();
