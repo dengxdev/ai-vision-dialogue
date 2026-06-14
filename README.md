@@ -33,29 +33,8 @@ pnpm dev        # 同时启动前端(5173)和后端(3000)
 [点击跳转bilibili观看]()
 
 ## 系统架构图
-
 三层解耦：前端应用层 → BFF 适配层 → 微服务层。
-
-```mermaid
-flowchart TB
-    Frontend["前端应用层<br/>React + 媒体采集/预处理 + Orchestrator"]
-    Frontend -->|"WebSocket / Socket.IO"| Gateway
-
-    subgraph BFF["BFF 适配层 (NestJS + Fastify)"]
-        Gateway["WebSocket Gateway"]
-        Guardian["Cost Guardian / Rate Limiter"]
-        Services["Vision / Dialogue / Cache"]
-    end
-
-    Gateway --> Guardian --> Services
-    Services -->|"HTTP / REST"| Backend
-
-    subgraph Backend["微服务层"]
-        VL["视觉理解<br/>Qwen-VL"]
-        LLM["LLM 推理<br/>Qwen-Turbo"]
-        Speech["语音服务<br/>Web Speech API"]
-    end
-```
+![三层解耦架构图](image.png)
 
 ## Monorepo 工程结构
 
