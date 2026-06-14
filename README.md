@@ -30,7 +30,7 @@ pnpm dev        # 同时启动前端(5173)和后端(3000)
 
 ## demo视频
 
-[点击跳转bilibili观看]()
+[点击跳转bilibili观看](https://www.bilibili.com/video/BV1sEJF6fEtt/?spm_id_from=333.1387.homepage.video_card.click&vd_source=4161990d09790406e813043ac22e9d5f)
 
 ## 系统架构图
 三层解耦：前端应用层 → BFF 适配层 → 微服务层。
