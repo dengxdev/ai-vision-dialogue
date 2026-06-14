@@ -125,6 +125,27 @@ export class MediaCaptureEngine {
   }
 
   /**
+   * 强制捕获当前视频帧，跳过前端变化检测，用于用户主动发起的对话场景。
+   * 画面是否重复由 BFF 的缓存层判断。
+   */
+  async forceCaptureFrame(): Promise<FramePipelineResult | null> {
+    if (!this.videoElement || !this.videoStream) {
+      console.warn('[MediaCaptureEngine] 摄像头未就绪，跳过强制捕获');
+      return null;
+    }
+
+    const video = this.videoElement;
+    const { videoWidth, videoHeight } = video;
+
+    if (!videoWidth || !videoHeight || video.readyState < 2) {
+      console.warn('[MediaCaptureEngine] 视频流未就绪，跳过强制捕获');
+      return null;
+    }
+
+    return this.pipeline.forceProcess(video);
+  }
+
+  /**
    * 动态更新压缩参数，用于 BFF 推送 RPM 档位后调整前端输出质量
    */
   updateCompressionParams(params: CompressionParams): void {

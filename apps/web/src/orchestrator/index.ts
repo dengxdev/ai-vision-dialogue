@@ -111,7 +111,7 @@ export class Orchestrator extends EventTarget {
 
     try {
       const [frameResult] = await Promise.all([
-        Promise.resolve().then(() => this.media.captureFrame()),
+        Promise.resolve().then(() => this.media.forceCaptureFrame()),
         Promise.resolve().then(() => this.asr.stop()),
       ]);
 

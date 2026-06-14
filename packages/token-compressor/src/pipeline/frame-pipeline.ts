@@ -96,6 +96,29 @@ export class FramePipeline {
   }
 
   /**
+   * 强制处理当前帧：压缩 + 哈希，但跳过变化检测，始终允许发送。
+   * 用于用户主动触发对话时，确保 AI 能看到当前画面。
+   *
+   * @param source HTMLVideoElement 或 base64 图像字符串
+   * @returns 帧管道处理结果，shouldSend 固定为 true
+   */
+  async forceProcess(
+    source: HTMLVideoElement | string,
+  ): Promise<FramePipelineResult> {
+    const compressed = await this.compressor.compress(source);
+    const perceptualHash = await this.hasher.hash(compressed.base64);
+
+    return this.assembleResult(
+      compressed,
+      0,
+      false,
+      perceptualHash,
+      true,
+      compressed.params,
+    );
+  }
+
+  /**
    * 仅压缩，不执行变化检测与哈希
    *
    * @param source HTMLVideoElement 或 base64 图像字符串
