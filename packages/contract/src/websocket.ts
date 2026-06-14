@@ -61,6 +61,7 @@ export const dialogueResultSchema = z.object({
   llmUsage: z.number().int().min(0).optional(),
   llmPromptTokens: z.number().int().min(0).optional(),
   llmCompletionTokens: z.number().int().min(0).optional(),
+  visionFromCache: z.boolean().optional(),
 });
 
 export const dialogueErrorSchema = z.object({

@@ -32,6 +32,8 @@ class ClientCostStats implements CostMetrics {
   avgResponseMs = 0;
 
   totalResponseMs = 0;
+  /** 每次 API 调用的发生时间，用于计算滚动窗口内的 RPM */
+  requestTimestamps: number[] = [];
 }
 
 @Injectable()
@@ -60,11 +62,11 @@ export class CostService {
 
   recordVisionCall(clientId: string, record: TokenRecord): void {
     const stats = this.getOrCreateStats(clientId);
-    this.rotateRpmWindow(stats);
+    const now = Date.now();
 
     stats.apiCalls += 1;
     stats.visionCalls += 1;
-    stats.rpm += 1;
+    stats.requestTimestamps.push(now);
 
     const promptTokens = record.promptTokens ?? record.tokensUsed;
     const completionTokens = record.completionTokens ?? 0;
@@ -79,11 +81,11 @@ export class CostService {
 
   recordLLMCall(clientId: string, record: TokenRecord): void {
     const stats = this.getOrCreateStats(clientId);
-    this.rotateRpmWindow(stats);
+    const now = Date.now();
 
     stats.apiCalls += 1;
     stats.llmCalls += 1;
-    stats.rpm += 1;
+    stats.requestTimestamps.push(now);
 
     const promptTokens = record.promptTokens ?? record.tokensUsed;
     const completionTokens = record.completionTokens ?? 0;
@@ -109,9 +111,20 @@ export class CostService {
 
   private rotateRpmWindow(stats: ClientCostStats): void {
     const now = Date.now();
-    if (now - stats.windowStart >= WINDOW_MS) {
-      stats.windowStart = now;
-      stats.rpm = 0;
+    // 只保留最近 60 秒内的请求时间戳
+    const cutoff = now - WINDOW_MS;
+    const startIndex = stats.requestTimestamps.findIndex((t) => t >= cutoff);
+    if (startIndex > 0) {
+      stats.requestTimestamps = stats.requestTimestamps.slice(startIndex);
+    } else if (startIndex === -1) {
+      stats.requestTimestamps = [];
+    }
+
+    stats.rpm = stats.requestTimestamps.length;
+
+    // windowStart 表示当前有效窗口的起点
+    if (stats.requestTimestamps.length > 0) {
+      stats.windowStart = stats.requestTimestamps[0];
     }
   }
 

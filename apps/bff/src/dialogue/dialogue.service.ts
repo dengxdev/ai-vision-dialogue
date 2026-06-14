@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createConfig } from '@ai-vision/config';
 import type { DialogueMessage, DialogueResponse, MultimodalInput } from '@ai-vision/shared';
+import { CacheService } from '../cache/cache.service';
 import { VisionService } from '../vision/vision.service';
 
 interface LLMMessage {
@@ -37,7 +38,10 @@ export class DialogueService {
   /** 单条消息最大 token 预算（粗略估算） */
   private readonly maxContextTokens = 4096;
 
-  constructor(private readonly visionService: VisionService) {}
+  constructor(
+    private readonly visionService: VisionService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async chat(input: MultimodalInput): Promise<DialogueResponse> {
     const { sessionId, message, visualContext } = input;
@@ -47,19 +51,42 @@ export class DialogueService {
     let visionTokens = 0;
     let visionPromptTokens = 0;
     let visionCompletionTokens = 0;
+    let visionFromCache = false;
 
-    // 1. 解析视觉上下文：如果是图片则先调用视觉模型获取画面描述
+    // 1. 解析视觉上下文：如果是图片则先调用视觉模型获取画面描述（带缓存）
     if (visualContext) {
       if (this.looksLikeImageBase64(visualContext)) {
-        const visionResult = await this.visionService.analyze({
-          imageBase64: visualContext,
-          prompt: message?.trim() || '描述画面内容',
-          context: this.toVisionMessages(history),
-        });
-        visualDescription = visionResult.description;
-        visionTokens = visionResult.tokensUsed;
-        visionPromptTokens = visionResult.promptTokens ?? visionTokens;
-        visionCompletionTokens = visionResult.completionTokens ?? 0;
+        const visualHash = await this.cacheService.getHash(visualContext);
+        const cached = this.cacheService.get<{
+          description: string;
+          tokensUsed: number;
+          promptTokens?: number;
+          completionTokens?: number;
+        }>(visualHash);
+
+        if (cached) {
+          visualDescription = cached.description;
+          visionTokens = cached.tokensUsed;
+          visionPromptTokens = cached.promptTokens ?? visionTokens;
+          visionCompletionTokens = cached.completionTokens ?? 0;
+          visionFromCache = true;
+        } else {
+          const visionResult = await this.visionService.analyze({
+            imageBase64: visualContext,
+            prompt: message?.trim() || '描述画面内容',
+            context: this.toVisionMessages(history),
+          });
+          visualDescription = visionResult.description;
+          visionTokens = visionResult.tokensUsed;
+          visionPromptTokens = visionResult.promptTokens ?? visionTokens;
+          visionCompletionTokens = visionResult.completionTokens ?? 0;
+          this.cacheService.set(visualHash, {
+            description: visualDescription,
+            tokensUsed: visionTokens,
+            promptTokens: visionPromptTokens,
+            completionTokens: visionCompletionTokens,
+          });
+        }
       } else {
         visualDescription = visualContext;
       }
@@ -101,6 +128,7 @@ export class DialogueService {
       visionUsage: visionTokens,
       visionPromptTokens,
       visionCompletionTokens,
+      visionFromCache,
       llmUsage,
       llmPromptTokens,
       llmCompletionTokens,

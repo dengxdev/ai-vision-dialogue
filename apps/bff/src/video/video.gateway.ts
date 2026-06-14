@@ -219,6 +219,12 @@ export class VideoGateway
     const clientId = client.id;
     const startAt = Date.now();
 
+    // 对话流程中如果携带画面，也计为一次帧捕获
+    const hasFrame = Boolean(payload.frame?.imageBase64);
+    if (hasFrame) {
+      this.costService.recordFrame(clientId, {});
+    }
+
     try {
       const response = await this.dialogueService.chat({
         sessionId: clientId,
@@ -246,6 +252,10 @@ export class VideoGateway
       });
       client.emit('dialogue:result', result);
 
+      if (hasFrame && response.visionFromCache) {
+        this.costService.recordFrame(clientId, { cacheHit: true });
+      }
+
       if (response.visionUsage && response.visionUsage > 0) {
         this.costService.recordVisionCall(clientId, {
           tokensUsed: response.visionUsage,
@@ -260,7 +270,7 @@ export class VideoGateway
           tokensUsed: response.llmUsage,
           promptTokens: response.llmPromptTokens,
           completionTokens: response.llmCompletionTokens,
-          durationMs: 0,
+          durationMs,
         });
       }
     } catch (error) {

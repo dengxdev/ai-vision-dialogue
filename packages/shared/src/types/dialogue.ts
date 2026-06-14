@@ -29,4 +29,6 @@ export interface DialogueResponse {
   llmPromptTokens?: number;
   /** 文本 LLM 输出 token 数 */
   llmCompletionTokens?: number;
+  /** 视觉描述是否来自缓存命中 */
+  visionFromCache?: boolean;
 }
